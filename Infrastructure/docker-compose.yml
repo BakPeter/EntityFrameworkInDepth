@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: efindepth-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-efindepth}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - backend
+    volumes:
+      # Host path from the env file; falls back to the named volume below.
+      - ${POSTGRES_DATA_PATH:-postgres-data}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-efindepth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4:8.14
+    container_name: efindepth-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - backend
+    volumes:
+      # Host path from the env file; falls back to the named volume below.
+      - ${PGADMIN_DATA_PATH:-pgadmin-data}:/var/lib/pgadmin
+    # pgAdmin runs as uid 5050 and chowns /var/lib/pgadmin on start, which it
+    # cannot do on a host bind mount; root avoids the startup permission error.
+    user: root
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  backend:
+    name: ${NETWORK_NAME:-efindepth-net}
+    driver: bridge
+
+# Docker-managed fallbacks, used only when POSTGRES_DATA_PATH / PGADMIN_DATA_PATH
+# are unset -- i.e. when there is no .env file. A bare name here is a named
+# volume; .env supplies `../Mounts/...` paths instead, which Compose recognizes
+# as bind mounts. Note the two modes are separate datasets.
+volumes:
+  postgres-data:
+    name: efindepth-postgres-data
+  pgadmin-data:
+    name: efindepth-pgadmin-data

@@ -1,0 +1,10 @@
+# Bind-mount targets for Infrastructure/docker-compose.yml -- runtime data.
+# Never committed; this file exists only so Mounts/ survives a clone.
+
+# Volume directories.
+postgres-data/
+pgadmin-data/
+
+# Anything else a container drops here.
+*
+!.gitignore

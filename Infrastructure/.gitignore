@@ -1,0 +1,6 @@
+# Local environment files -- machine-specific values, never committed.
+.env
+.env.*
+
+# ...but keep the committed template.
+!.env.example
